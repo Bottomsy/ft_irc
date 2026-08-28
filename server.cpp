@@ -483,5 +483,5 @@ void Server::invite_user(std::string cname, std::string nick, Client *client)
     }
 
     if (!found)
-        send(client->get_fd(), "no such channel\n", 17, 0);
+        send_error(client->get_fd(), 403, client, cname);
 }
