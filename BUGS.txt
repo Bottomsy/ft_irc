@@ -1,0 +1,93 @@
+I pulled the subject, cloned your repo, and actually built and ran it against live IRC traffic rather than just reading it. Good news first: the skeleton is real — single poll(), no forking, and all the mandatory commands (PASS/NICK/USER/JOIN/PRIVMSG/KICK/INVITE/TOPIC/MODE) are present. But there are a few things that would end an evaluation immediately, so let's start there.
+
+🔴 Crashes I reproduced (not theoretical — I triggered these)
+
+1. Bare PRIVMSG segfaults the server, 100% of the time.
+
+PASS pass
+NICK bob
+USER bob
+PRIVMSG
+
+command_hub() does server->send_message(info["NICK"], args[0], args) in the else branch without checking args.size() first — if there are zero args, args[0] reads past the end of an empty vector. I sent this twice against two fresh server instances and it died both times.
+
+Fix:
+
+cpp
+if (cmd == "PRIVMSG")
+{
+    if (args.empty())
+    {
+        std::string msg = ":irc_server 411 " + info["NICK"] + " :No recipient given (PRIVMSG)\r\n";
+        send(_fd, msg.c_str(), msg.size(), 0);
+    }
+    else if (args[0][0] == '#')
+        server->send_group_msg(args[0].substr(1), args, this);
+    else
+        server->send_message(info["NICK"], args[0], args);
+}
+
+2. Server::remove_client() reads a client after erasing it — intermittent crash (classic UB).
+
+cpp
+void Server::remove_client(int t)
+{
+    close(clients[t - 1]->get_fd());
+    poll_vec.erase(poll_vec.begin() + t);
+    clients.erase(clients.begin() + (t - 1));      // erased first...
+    name_list.erase(clients[t - 1]->get_nick());   // ...then read at the same index
+}
+
+After the erase, clients[t-1] is either the next client shifted into that slot (so you delete the wrong nickname from name_list) or, if t-1 was the last element, straight-up out of bounds. I connected one client, registered, and sent QUIT — it crashed on one run and survived on another, which is exactly the signature of undefined behavior. Contrast with read_from_socket(), which does this correctly (grabs the nick before erasing) — remove_client() just has the two lines swapped. Fix:
+
+cpp
+void Server::remove_client(int t)
+{
+    std::string nick = clients[t - 1]->get_nick();
+    close(clients[t - 1]->get_fd());
+    poll_vec.erase(poll_vec.begin() + t);
+    clients.erase(clients.begin() + (t - 1));
+    name_list.erase(nick);
+}
+🔴 It doesn't actually build under the real project constraints
+Executable name. The subject runs it as ./ircserv <port> <password>. Your Makefile builds a binary called server. This is a one-line fix but an easy way to fail a defense outright if the evaluator's script (or the person) literally types ./ircserv.
+Flags is defined but never used. Your compile rule is $(CC) $(Srcs) -o $(Name) — $(Flags) (-std=c++98 -Wall -Wextra -Werror) never gets passed in. I turned it on manually and the project does not compile under it: extended initializer lists (info = {{"PASS",""},...}, name_list.insert({nick, fd})) are C++11-only, std::stoi doesn't exist pre-C++11, there's a missing #include <cstdlib> for exit/atoi, and there are ~15 signed/unsigned comparison errors (int t vs .size()) across channel.cpp/server.cpp/client.cpp. Right now you're only compiling clean because the required flags aren't actually being applied.
+helper.cpp isn't in Srcs. Plain make currently fails to link (send_error undefined) before you even get to the flags issue.
+
+Fixed Makefile:
+
+makefile
+CC = c++
+Flags = -std=c++98 -Wall -Wextra -Werror
+Srcs = main.cpp client.cpp channel.cpp server.cpp helper.cpp
+Name = ircserv
+
+all: $(Name)
+
+$(Name): $(Srcs) $(Headers)
+	$(CC) $(Flags) $(Srcs) -o $(Name)
+
+clean:
+	rm -f $(Name)
+
+fclean: clean
+
+re: fclean all
+channel.hpp's include guard is broken: #ifndef CAHNNEL_HPP / #define CHANNEL_HPP — typo means the #ifndef never actually matches, so the guard doesn't guard anything. Harmless today only by luck of your current include order.
+🟠 Compliance/robustness gaps
+No socket is ever set non-blocking — no fcntl(fd, F_SETFL, O_NONBLOCK) anywhere. Right now you're relying entirely on poll() readiness, but your send() calls aren't gated by POLLOUT at all. A stalled/slow client can make send() block, and since you're single-threaded with one poll(), that freezes the server for every client — precisely what "all I/O must be non-blocking" is there to prevent.
+Most server→client messages aren't real IRC protocol lines. You've got proper numerics for 001/431/432/433/464 and NICK/PING, but JOIN, PART, KICK, INVITE, TOPIC, MODE, and channel PRIVMSG all send ad-hoc human text like "channel created and joined successfully\r\n" instead of :nick!user@host JOIN :#chan\r\n style lines. A real client (irssi/WeeChat/HexChat) will mostly just show these as unrecognized raw server output rather than actual chat activity — this is likely the biggest gap between "the logic works" and "it behaves like IRC" during a live defense.
+Disconnect/QUIT never removes the client from the channels they were in. remove_client/read_from_socket clean up poll_vec/clients/name_list, but never touch Channel::clients/operators/users. Since the OS reuses fd numbers after close(), a later unrelated client can get assigned that same fd and silently start receiving messages meant for a channel they never joined.
++k (channel password) is settable but never checked on JOIN — create_channel checks invite-only and user limit, never getPassword().
+Channel PRIVMSG echoes the message back to the sender too (no skip-self check in Channel::send_msg).
+🟡 Smaller stuff
+run_serv()'s for-loop index can skip a client's event when a disconnect shifts poll_vec mid-iteration.
+registration() caps PASS/NICK/USER values at 10 characters — will silently reject any real password longer than that.
+Any command besides PASS/NICK/USER/CAP during registration is treated as fatal and disconnects the client.
+Only one pending invite is stored per client (a single string) — a second invite clobbers the first.
+Client/Channel objects are new'd but never delete'd on disconnect (leak).
+No PART (only a dead, commented-out "LEAVE" stub).
+"!user@host" is hardcoded literally instead of using the client's real USER/IP.
+A compiled server binary is committed to git — worth a .gitignore.
+
+Want to start with the two crashes + the Makefile (quick, mechanical), or go straight at the RFC-message-formatting rework (bigger job, but probably the highest-value fix for it actually feeling like IRC against a real client)?

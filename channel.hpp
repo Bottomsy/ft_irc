@@ -1,4 +1,4 @@
-#ifndef CAHNNEL_HPP
+#ifndef CHANNEL_HPP
 #define CHANNEL_HPP
 
 
