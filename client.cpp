@@ -328,3 +328,4 @@ void Client::set_nick(std::string new_nick)
 {
     info["NICK"] = new_nick;
 }
+

@@ -1,6 +1,105 @@
 #include "server.hpp"
 #include "channel.hpp"
 
+int send_error(int fd, int code, Client *client, std::string params)
+{
+// error format: :IRC <code> <nick> <params> :<error message>\r\n
+    switch (code)
+    {
+        case 400:
+            send(fd, ":IRC 400 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Invalid command\r\n", 17, 0);
+            return 1;
+        case 401:
+            send(fd, ":IRC 401 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :No such nick/channel\r\n", 23, 0);
+            return 1;
+        case 403:
+            send(fd, ":IRC 403 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Channel not found\r\n", 20, 0);
+            return 1;
+        case 404:
+            send(fd, ":IRC 404 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Cannot send to channel\r\n", 26, 0);
+            return 1;
+        case 405:
+            send(fd, ":IRC 405 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Too many channels\r\n", 21, 0);
+            return 1;
+        case 442:
+            send(fd, ":IRC 442 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :User is not on that channel\r\n", 31, 0);
+            return 1;
+        case 443:
+            send(fd, ":IRC 443 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :User already on channel\r\n", 27, 0);
+            return 1;
+        case 471:
+            send(fd, ":IRC 471 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Channel is full\r\n", 20, 0);
+            return 1;
+        case 472:
+            send(fd, ":IRC 472 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Unknown mode\r\n", 17, 0);
+            return 1;
+        case 473:
+            send(fd, ":IRC 473 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Channel is invite only\r\n", 25, 0);
+            return 1;
+        case 475:
+            send(fd, ":IRC 475 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :Incorrect password\r\n", 23, 0);
+            return 1;
+        case 482:
+            send(fd, ":IRC 482 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " ", 1, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, " :You're not channel operator\r\n", 32, 0);
+            return 1;
+        default:
+            send(fd, ":IRC 500 ", 9, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, " :Unknown error\r\n", 16, 0);
+            return 1;
+    }
+    send(fd, "UNKNOWN ERROR CODE(GO CHECK CODE)\r\n", 34, 0);
+    return (-1);
+}
+
 Server::Server(std::string pass, int port) : pwd(pass), port(port)
 {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -250,7 +349,7 @@ void Server::create_channel(std::string name, Client *client)
                 {
                     if (channels[t]->getInviteOnly() && client->get_inv_cname() != cname)
                     {
-                        send(client->get_fd(), "channel is invite only, cannot join\n", 36, 0);
+                        send_error(client->get_fd(), 473, client, cname);
                         return;
                     }
                     channels[t]->addClient(client);
@@ -260,10 +359,10 @@ void Server::create_channel(std::string name, Client *client)
                     send(client->get_fd(), "\n", 1, 0);
                 }
                 else
-                    send(client->get_fd(), "channel is full, cannot join\n", 30, 0);
+                    send_error(client->get_fd(), 471, client, cname);
             }
             else if (channels[t]->getName() == cname && (channels[t]->user_check(client->get_nick())))
-                send(client->get_fd(), "you are already part of this channel\n", 37, 0);
+                send_error(client->get_fd(), 443, client, cname);             
         }
     }
     // Channel new_channel(name, client);
@@ -300,7 +399,7 @@ void Server::set_mode(Client *client, std::vector<std::string> args)
             found = true;
             if (args.size() < 2)
             {
-                send(client->get_fd(), "no mode specified\n", 18, 0);
+                send_error(client->get_fd(), 472, client, args[0]);
                 return;
             }
             if (channels[t]->operator_check(client->get_nick()))
@@ -346,16 +445,16 @@ void Server::set_mode(Client *client, std::vector<std::string> args)
                 else if (args[1] == "-o" && target != NULL)
                     channels[t]->setOperator(target, false);
                 else if ((args[1] == "+o" || args[1] == "-o") && target == NULL)
-                    send(client->get_fd(), "target user not found\n", 22, 0);
+                    send_error(client->get_fd(), 401, client, args[2]);
             }
             else
-                send(client->get_fd(), "you are not an operator of this channel\n", 39, 0);
+                send_error(client->get_fd(), 482, client, cname);
             return;
         }
     }
 
     if (!found)
-        send(client->get_fd(), "no such channel\n", 17, 0);
+        send_error(client->get_fd(), 403, client, args[0]);
 }
 
 void Server::send_topic(std::string cname, std::vector<std::string> args, Client *client)
@@ -385,7 +484,7 @@ void Server::send_topic(std::string cname, std::vector<std::string> args, Client
                 }
                 if (channels[t]->getTopcrestricted() && !(channels[t]->operator_check(client->get_nick())))
                 {
-                    send(client->get_fd(), "you are not an operator of this channel\n", 39, 0);
+                    send_error(client->get_fd(), 482, client, args[0]);
                     return;
                 }
                 channels[t]->setTopic(ntopic);
@@ -397,7 +496,7 @@ void Server::send_topic(std::string cname, std::vector<std::string> args, Client
         }
     }
     if (!found)
-        send(client->get_fd(), "no such channel\n", 17, 0);
+        send_error(client->get_fd(), 403, client, args[0]);
 }
 
 void Server::kick_user(std::string cname, std::string nick, Client *client)
@@ -424,17 +523,19 @@ void Server::kick_user(std::string cname, std::string nick, Client *client)
                     send(name_list[nick], "you have been kicked from channel\n", 34, 0);
                 }
                 else
-                    send(client->get_fd(), "you are not an operator of this channel\n", 39, 0);
+                    send_error(client->get_fd(), 482, client, cname);
             }
             else
-                send(client->get_fd(), "user not found in channel\n", 28, 0);
+                send_error(client->get_fd(), 401, client, nick);
             return;
         }
     }
 
     if (!found)
-        send(client->get_fd(), "no such channel\n", 17, 0);
+        send_error(client->get_fd(), 403, client, cname);
 }
+
+
 
 void Server::invite_user(std::string cname, std::string nick, Client *client)
 {
@@ -453,12 +554,12 @@ void Server::invite_user(std::string cname, std::string nick, Client *client)
             found = true;
             if (channels[t]->user_check(nick))
             {
-                send(client->get_fd(), "user already in channel\n", 25, 0);
+                send_error(client->get_fd(), 443, client, nick);
                 return;
             }
             if (name_list.find(nick) == name_list.end())
             {
-                send(client->get_fd(), "user not found\n", 15, 0);
+                send_error(client->get_fd(), 401, client, nick);
                 return;
             }
             if (channels[t]->operator_check(client->get_nick()))
@@ -477,7 +578,7 @@ void Server::invite_user(std::string cname, std::string nick, Client *client)
                 send(client->get_fd(), "user invited to channel\n", 25, 0);
             }
             else
-                send(client->get_fd(), "you are not an operator of this channel\n", 39, 0);
+                send_error(client->get_fd(), 482, client, cname);
             return;
         }
     }
