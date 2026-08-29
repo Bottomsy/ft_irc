@@ -55,6 +55,8 @@ class Server{
         void update_nick(Client *client, std::string new_ick);
 };
 
+int send_error(int fd, int code, Client *client, std::string params);
+int check_hashtag(std::string name, Client *client);
 //to be done for server::
 //OCF - constructor with pass and port.
 

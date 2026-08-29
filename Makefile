@@ -2,11 +2,11 @@ CC= c++
 
 Flags= -std=c++98 -Wall -Wextra -Werror
 
-Srcs= main.cpp client.cpp channel.cpp server.cpp
+Srcs= main.cpp client.cpp channel.cpp server.cpp helper.cpp
 
 Headers= client.hpp
 
-Name= server
+Name= ircserv
 
 all:$(Name)
 
