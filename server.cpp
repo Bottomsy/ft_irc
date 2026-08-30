@@ -64,8 +64,7 @@ void Server::update_nick(Client *client, std::string new_nick)
     }
     else
     {
-        std::string msg = ":irc_server 433 " + client->get_nick() + " " + new_nick + " :Nickname is already in use\r\n";
-        send(client->get_fd(), msg.c_str(), msg.size(), 0);
+        send_error(client->get_fd(), 433, client, new_nick);
     }
 }
 
@@ -108,8 +107,8 @@ void Server::remove_client(int t)
 {
     close(clients[t - 1]->get_fd());
     poll_vec.erase(poll_vec.begin() + t);
-    clients.erase(clients.begin() + (t - 1));
     name_list.erase(clients[t - 1]->get_nick());
+    clients.erase(clients.begin() + (t - 1));
 }
 
 void Server::process_completed_message(int t)
@@ -128,18 +127,14 @@ void Server::process_completed_message(int t)
         {
             if (name_list.find(clients[t - 1]->get_nick()) != name_list.end())
             {
-                std::string msg = ":irc_server 433 * " + clients[t - 1]->get_nick() + " :Nickname is already in use\r\n";
-                send(clients[t - 1]->get_fd(), msg.c_str(), msg.size(), 0);
-                send(clients[t - 1]->get_fd(), "NICK already in use, you have been disconnected!\r\n", 49, 0);
-                remove_client(t);
+                send_error(clients[t - 1]->get_fd(), 433, clients[t - 1], clients[t - 1]->get_nick());
                 return;
             }
             else
             {
                 {
                     // std::cout << "connection accepted for " << clients[t - 1]->get_nick() << " socket fd -> " << clients[t - 1]->get_fd() << std::endl;
-                    std::string msg = ":irc_server 001 " + clients[t - 1]->get_nick() + " :Welcome to the IRC server Network\r\n";
-                    send(clients[t - 1]->get_fd(), msg.c_str(), msg.size(), 0);
+                    send_error(clients[t - 1]->get_fd(), 001, clients[t - 1], "");
                     // std::cout << "nickname for new user inside the map >> " << clients[t - 1]->get_nick() << std::endl;
                     name_list.insert({clients[t - 1]->get_nick(), clients[t - 1]->get_fd()});
                     clients[t - 1]->set_added();
@@ -180,19 +175,17 @@ void Server::run_serv()
     }
 }
 
-void Server::send_message(std::string sender, std::string recipient, std::vector<std::string> msgs)
+void Server::send_message(Client *sender, std::string recipient, std::vector<std::string> msgs)
 {
 
     if (msgs.size() == 0)
     {
-        std::string msg = ":irc_server 411 " + sender + " :No recipient given (PRIVMSG)\r\n";
-        send(name_list[sender], msg.c_str(), msg.size(), 0);
+        send_error(sender->get_fd(), 411, sender, ""); // to review
         return;
     }
     else if (msgs.size() == 1)
     {
-        std::string msg = ":irc_server 412 " + sender + " :No text to send\r\n";
-        send(name_list[sender], msg.c_str(), msg.size(), 0);
+        send_error(sender->get_fd(), 412, sender, ""); // to review
         return;
     }
     // std::cout << "inside pvt msgfunction" << std::endl;
@@ -202,8 +195,7 @@ void Server::send_message(std::string sender, std::string recipient, std::vector
     if (it != name_list.end())
     {
         // std::cout << "sending to : " << it->first << std::endl;
-
-        std::string msg = ":" + sender + " PRIVMSG " + recipient + " :";
+        std::string msg = ":" + sender->get_nick() + " PRIVMSG " + recipient + " :";
         for (int t = 1; t < msgs.size(); t++)
         {
             msg += msgs[t];
@@ -215,8 +207,7 @@ void Server::send_message(std::string sender, std::string recipient, std::vector
     }
     else
     {
-        std::string msg = ":irc_server 401 " + sender + " " + recipient + ":No such nick/channel\r\n";
-        send(name_list[sender], msg.c_str(), msg.size(), 0);
+        send_error(sender->get_fd(), 401, sender, recipient);
     }
 }
 
@@ -237,7 +228,7 @@ void Server::create_channel(std::string name, Client *client)
     {
         channels.push_back(new Channel(cname, client));
         open_channels.insert(cname);
-        send(client->get_fd(), "channel created and joined successfully\r\n", 41, 0);
+        send_error(client->get_fd(), 6969, client, cname);
     }
     else
     {
@@ -254,9 +245,7 @@ void Server::create_channel(std::string name, Client *client)
                     }
                     channels[t]->addClient(client);
                     channels[t]->add_user(client->get_nick(), client->get_fd());
-                    send(client->get_fd(), "Joined channel #", 15, 0);
-                    send(client->get_fd(), cname.c_str(), cname.size(), 0);
-                    send(client->get_fd(), "\n", 1, 0);
+                    broadcast_message(channels[t], client, 42069, cname);
                 }
                 else
                     send_error(client->get_fd(), 471, client, cname);
@@ -317,7 +306,7 @@ void Server::set_mode(Client *client, std::vector<std::string> args)
                     }
                     else
                     {
-                        send(client->get_fd(), "no target specified for operator mode change\n", 46, 0);
+                        send_error(client->get_fd(), 461, client, args[0]);
                         return;
                     }
                 }
@@ -409,9 +398,8 @@ void Server::kick_user(std::string cname, std::string nick, Client *client)
             {
                 if (channels[t]->operator_check(client->get_nick()))
                 {
+                    broadcast_message(channels[t], client, 6767, nick);
                     channels[t]->removeClient(nick);
-                    send(client->get_fd(), "user kicked from channel\n", 26, 0);
-                    send(name_list[nick], "you have been kicked from channel\n", 34, 0);
                 }
                 else
                     send_error(client->get_fd(), 482, client, cname);
@@ -460,10 +448,7 @@ void Server::invite_user(std::string cname, std::string nick, Client *client)
                         break;
                     }
                 }
-                send(name_list[nick], "you have been invited to channel\n", 33, 0);
-                send(name_list[nick], cname.c_str(), cname.size(), 0);
-                send(name_list[nick], "\n", 1, 0);
-                send(client->get_fd(), "user invited to channel\n", 25, 0);
+                send_invite_message(name_list[nick], client, cname);
             }
             else
                 send_error(client->get_fd(), 482, client, cname);
@@ -473,4 +458,15 @@ void Server::invite_user(std::string cname, std::string nick, Client *client)
 
     if (!found)
         send_error(client->get_fd(), 403, client, cname);
+}
+
+void Server::broadcast_message(Channel *channel, Client *sender, int code, const std::string &message)
+{
+    for (std::map<std::string, int>::iterator it = channel->getUsers().begin(); it != channel->getUsers().end(); ++it)
+    {
+        if (it->first != sender->get_nick())
+            send_error(it->second, code, sender, message);
+        else
+            send_error(sender->get_fd(), code, sender, message);
+    }
 }

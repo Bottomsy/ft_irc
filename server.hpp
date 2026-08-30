@@ -45,7 +45,7 @@ class Server{
         bool free_nickname(std::string nick);
         std::string get_pwd() const;
         void send_group_msg(std::string cname, std::vector<std::string> args, Client *client);
-        void send_message(std::string sender, std::string recipient, std::vector<std::string> msgs);
+        void send_message(Client *sender, std::string recipient, std::vector<std::string> msgs);
         void set_mode(Client *client, std::vector<std::string> args);
         void send_topic(std::string cname, std::vector<std::string> args, Client *client);
         void kick_user(std::string cname, std::string nick, Client *client);
@@ -53,10 +53,13 @@ class Server{
         void leave_channel(std::string cname, Client *client);
         void remove_client(int t);
         void update_nick(Client *client, std::string new_ick);
+        void broadcast_message(Channel *channel, Client *sender, int code, const std::string &message);
+
 };
 
 int send_error(int fd, int code, Client *client, std::string params);
 int check_hashtag(std::string name, Client *client);
+void send_invite_message(int fd, Client *client, std::string cname);
 //to be done for server::
 //OCF - constructor with pass and port.
 

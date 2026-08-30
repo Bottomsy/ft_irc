@@ -17,7 +17,6 @@ This document lists the minimal IRC numeric replies and errors relevant to the 4
 
 ```
 431 ERR_NONICKNAMEGIVEN
-432 ERR_ERRONEUSNICKNAME
 433 ERR_NICKNAMEINUSE
 451 ERR_NOTREGISTERED
 461 ERR_NEEDMOREPARAMS

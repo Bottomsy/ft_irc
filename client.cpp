@@ -212,7 +212,7 @@ void Client::command_hub()
         if (args.size() >= 1 && args[0][0] == '#')
             server->send_group_msg(args[0].substr(1, args[0].size()), args, this);
         else
-            server->send_message(info["NICK"], args[0], args);
+            server->send_message(this, args[0], args);
     }
     else if (cmd == "JOIN" && args.size() >= 1)
     {

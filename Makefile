@@ -19,3 +19,4 @@ clean:
 fclean: clean
 
 re: clean all
+	./$(Name) 6667 a

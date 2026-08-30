@@ -64,17 +64,17 @@ class Client{
         bool get_reg_status() const;
         std::string get_nick() const;
         bool get_link() const;
-        bool get_added() const;
         bool get_failed_reg() const;
+        std::string get_inv_cname() ;
+        std::string get_arg(int index);
+        bool get_quit_req() const;
+        bool get_added() const;
+        bool is_operator();
         void set_added();
         void set_operator(bool is_op);
-        std::string remove_nl();
-        std::string get_arg(int index);
-        bool is_operator();
-        void set_inv_cname(std::string cname);
-        std::string get_inv_cname() ;
-        bool get_quit_req() const;
         void set_nick(std::string new_nick);
+        void set_inv_cname(std::string cname);
+        std::string remove_nl();
         // friend void Server::create_channel(std::string name, Client *client);
 };
 

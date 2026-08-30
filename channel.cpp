@@ -190,3 +190,7 @@ void Channel::setTopcrestricted(bool topcrestricted)
 {
     this->topcrestricted = topcrestricted;
 }   
+std::map<std::string, int> &Channel::getUsers()
+{
+    return users;
+}

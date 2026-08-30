@@ -37,6 +37,7 @@ class Channel
         int         getuserlimit(); 
         bool getInviteOnly();
         bool getTopcrestricted();
+        std::map<std::string, int> &getUsers();
 
 
         void add_user(std::string nick, int fder);
@@ -56,7 +57,7 @@ class Channel
         void setuserlimit(int limit);
         void setPassword(const std::string newPassword);
         void setInviteOnly(bool inviteOnly);
-        void setTopcrestricted(bool topcrestricted); 
+        void setTopcrestricted(bool topcrestricted);
         // bool areoperator(Client *client);
 };
 
