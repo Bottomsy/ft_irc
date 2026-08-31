@@ -145,7 +145,7 @@ int Client::registration()
 
     if (key != "PASS" && info["PASS"].empty())
     {
-        send_error(_fd, 1337, this, "PASS required first");
+        send_error(_fd, 1337 , this, "");
         failed_registration = true;
         return 1;
     }
