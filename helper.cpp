@@ -211,7 +211,6 @@ int send_error(int fd, int code, Client *client, std::string params)
         case 1337:
             send(fd, ":IRC ", 5, 0);
             send(fd, "PASS must be sent first\r\n", 25, 0);
-            send(fd, "\r\n", 2, 0);
             return 1;
 
 
