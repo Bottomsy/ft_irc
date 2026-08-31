@@ -142,6 +142,14 @@ int Client::registration()
 
     if (key == "CAP")
         return 0;
+
+    if (key != "PASS" && info["PASS"].empty())
+    {
+        send_error(_fd, 1337, this, "PASS required first");
+        failed_registration = true;
+        return 1;
+    }
+
     std::map<std::string, std::string>::iterator it;
     it = info.find(key);
     if (it != info.end() && (it->second.size() == 0) && (value.size() >= 1) && (value.size() <= 10))
@@ -150,15 +158,13 @@ int Client::registration()
         {
             if (server->free_nickname(value) == false)
             {
-                std::string msg = ":irc_server 433 * " + info["NICK"] + " :Nickname is already in use\r\n";
-                send(_fd, msg.c_str(), msg.size(), 0);
+                send_error(_fd, 433, this, value);
                 failed_registration = true;
                 return 1;
             }
             else if (key == "NICK" && value[0] == '#')
             {
-                std::string msg = ":irc_server 432 * " + info["NICK"] + " :Erroneous nickname\r\n";
-                send(_fd, msg.c_str(), msg.size(), 0);
+                send_error(_fd, 432, this, value);
                 failed_registration = true;
                 return 1;
             }
@@ -166,10 +172,10 @@ int Client::registration()
 
         else if (key == "PASS" && value != server->get_pwd())
         {
-            send(_fd, "464", 3, 0);
+            send_error(_fd, 464, this, value);
             failed_registration = true;
             return 1;
-        }
+        }   
         info[key] = value;
         reg_entries++;
         if (reg_entries == 3)
@@ -243,9 +249,9 @@ void Client::command_hub()
     {
         server->invite_user(args[1], args[0], this);
     }
-    else if (cmd == "LEAVE" && args.size() >= 1)
+    else if (cmd == "PART" && args.size() >= 1)
     {
-        // server->leave_channel(args[0], this);
+        server->leave_channel(args[0], this);
     }
     else if (cmd == "LIST")
     {

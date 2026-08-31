@@ -243,9 +243,15 @@ void Server::create_channel(std::string name, Client *client)
                         send_error(client->get_fd(), 473, client, cname);
                         return;
                     }
+                    if (channels[t]->getPassword() != "" && channels[t]->getPassword() != client->get_arg(1))
+                    {
+                        send_error(client->get_fd(), 475, client, cname);
+                        return;
+                    }
                     channels[t]->addClient(client);
                     channels[t]->add_user(client->get_nick(), client->get_fd());
                     broadcast_message(channels[t], client, 42069, cname);
+                    client->set_inv_cname("");  
                 }
                 else
                     send_error(client->get_fd(), 471, client, cname);
@@ -263,8 +269,16 @@ void Server::send_group_msg(std::string cname, std::vector<std::string> args, Cl
     {
         if (channels[t]->getName() == cname)
         {
-            channels[t]->send_msg(args, client);
-            return;
+            if (!channels[t]->user_check(client->get_nick()))
+            {
+                send_error(client->get_fd(), 442, client, cname);
+                return;
+            }
+            else
+            {
+                channels[t]->send_msg(args, client);
+                return;
+            }
         }
     }
 }
@@ -319,7 +333,18 @@ void Server::set_mode(Client *client, std::vector<std::string> args)
                 else if (args[1] == "-t")
                     channels[t]->setTopcrestricted(false);
                 else if (args[1] == "+k" && args.size() >= 3)
+                {
+                    if (args[2].empty())
+                    {
+                        send_error(client->get_fd(), 461, client, args[0]);
+                        return;
+                    }
+                    else if (channels[t]->getPassword() != "")
+                    {
+                        // to figure out later 7wani n3as
+                    }
                     channels[t]->setPassword(args[2]);
+                }
                 else if (args[1] == "-k")
                     channels[t]->setPassword("");
                 else if (args[1] == "+l" && args.size() >= 3)
@@ -469,4 +494,31 @@ void Server::broadcast_message(Channel *channel, Client *sender, int code, const
         else
             send_error(sender->get_fd(), code, sender, message);
     }
+}
+
+void Server::leave_channel(std::string cname, Client *client)
+{
+    if (check_hashtag(cname, client))
+        return;
+    cname = cname.substr(1, cname.size());
+
+    bool found = false;
+    for (int t = 0; t < channels.size(); t++)
+    {
+        if (channels[t]->getName() == cname)
+        {
+            found = true;
+            if (channels[t]->user_check(client->get_nick()))
+            {
+                channels[t]->removeClient(client->get_nick());
+                broadcast_message(channels[t], client, 6769, client->get_nick());
+            }
+            else
+                send_error(client->get_fd(), 442, client, cname);
+            return;
+        }
+    }
+
+    if (!found)
+        send_error(client->get_fd(), 403, client, cname);
 }

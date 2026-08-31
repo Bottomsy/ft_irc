@@ -199,6 +199,20 @@ int send_error(int fd, int code, Client *client, std::string params)
             send(fd, params.c_str(), params.size(), 0);
             send(fd, "\r\n", 2, 0);
             return 1;
+        case 6769:
+            send(fd, ":IRC ", 5, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, "!", 1, 0);
+            send(fd, client->get_nick().c_str(), client->get_nick().size(), 0);
+            send(fd, "@host Has left #", 16, 0);
+            send(fd, params.c_str(), params.size(), 0);
+            send(fd, "\r\n", 2, 0);
+            return 1;
+        case 1337:
+            send(fd, ":IRC ", 5, 0);
+            send(fd, "PASS must be sent first\r\n", 25, 0);
+            send(fd, "\r\n", 2, 0);
+            return 1;
 
 
 
