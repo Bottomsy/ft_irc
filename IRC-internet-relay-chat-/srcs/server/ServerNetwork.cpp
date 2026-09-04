@@ -1,8 +1,8 @@
-#include "Server.hpp"
-#include "PrivMsgCommand.hpp"
-#include "JoinCommand.hpp"
-#include "Kick.hpp"
-#include "invite.hpp"
+#include "server/Server.hpp"
+#include "commands/PrivMsgCommand.hpp"
+#include "commands/JoinCommand.hpp"
+#include "commands/Kick.hpp"
+#include "commands/invite.hpp"
 
 void C_Server::initializeNetwork()
 {

@@ -1,4 +1,4 @@
-#include "Channel.hpp"
+#include "channel/Channel.hpp"
 
 bool C_Channel::isInviteOnly() const
 {

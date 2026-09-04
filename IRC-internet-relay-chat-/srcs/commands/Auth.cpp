@@ -1,6 +1,6 @@
-#include "Server.hpp"
-#include "Channel.hpp"
-#include "Client.hpp"
+#include "server/Server.hpp"
+#include "channel/Channel.hpp"
+#include "client/Client.hpp"
 
 bool C_Server::nicknameIsTaken(std::string nickname)
 {

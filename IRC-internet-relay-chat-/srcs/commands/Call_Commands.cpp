@@ -1,6 +1,6 @@
-#include "Server.hpp"
-#include "Client.hpp"
-#include "commands.hpp"
+#include "server/Server.hpp"
+#include "client/Client.hpp"
+#include "commands/commands.hpp"
 
 void C_Server::dispatchCommand(t_command &cmd, int fd)
 {

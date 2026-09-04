@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "server/Server.hpp"
 
 bool isValidPassword(std::string password){
     if(password.empty())

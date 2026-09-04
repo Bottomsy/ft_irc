@@ -1,4 +1,4 @@
-#include "Client.hpp"
+#include "client/Client.hpp"
 #include <sys/socket.h>
 
 void C_Client::joinChannel(C_Channel *ch)

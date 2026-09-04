@@ -1,6 +1,6 @@
-#include "Server.hpp"
-#include "Client.hpp"
-#include "commands.hpp"
+#include "server/Server.hpp"
+#include "client/Client.hpp"
+#include "commands/commands.hpp"
 #include <sstream>
 
 bool C_Server::_signal = false;

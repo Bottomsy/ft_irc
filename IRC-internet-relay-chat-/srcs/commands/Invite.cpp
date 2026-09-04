@@ -1,5 +1,5 @@
-#include "invite.hpp"
-#include "Channel.hpp"
+#include "commands/invite.hpp"
+#include "channel/Channel.hpp"
 
 void C_invite::execute(C_Server& server, C_Client& client ,const std::vector<std::string>& args){
 

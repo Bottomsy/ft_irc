@@ -1,5 +1,5 @@
-#include "Server.hpp"
-#include "Client.hpp"
+#include "server/Server.hpp"
+#include "client/Client.hpp"
 
 void C_Server::acceptConnection()
 {

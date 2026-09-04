@@ -1,5 +1,5 @@
-#include "Kick.hpp"
-#include "Channel.hpp"
+#include "commands/Kick.hpp"
+#include "channel/Channel.hpp"
 
 
 C_kick::C_kick(){

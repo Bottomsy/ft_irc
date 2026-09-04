@@ -1,5 +1,5 @@
-#include "PrivMsgCommand.hpp"
-#include "Channel.hpp"
+#include "commands/PrivMsgCommand.hpp"
+#include "channel/Channel.hpp"
 
 
 void C_privMsgCommand::execute(C_Server& server,C_Client& client, const std::vector<std::string>& args){

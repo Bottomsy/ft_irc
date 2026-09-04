@@ -1,5 +1,5 @@
-#include "Channel.hpp"
-#include "Client.hpp"
+#include "channel/Channel.hpp"
+#include "client/Client.hpp"
 
 C_Channel::C_Channel(const std::string& name, C_Client& creator)
     : _name(name), _inviteOnly(false), _topicRestricted(false), _userLimit(0)

@@ -1,5 +1,5 @@
-#include "Channel.hpp"
-#include "Client.hpp"
+#include "channel/Channel.hpp"
+#include "client/Client.hpp"
 
 void C_Channel::addClient(C_Client& client, const std::string& given_key)
 {
