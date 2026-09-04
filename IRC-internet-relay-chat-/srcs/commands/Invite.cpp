@@ -4,7 +4,7 @@
 void C_invite::execute(C_Server& server, C_Client& client ,const std::vector<std::string>& args){
 
     if (args.size() < 2 ){
-        client.sendMessage(":server 461 " + client.getNickname() + " INVITE :Not enough parameters\r\n");
+           server.sendError(&client, 461, "INVITE", "", "Not enough parameters");
         return;
     }
     std::string target_nick = args[0];
@@ -13,28 +13,28 @@ void C_invite::execute(C_Server& server, C_Client& client ,const std::vector<std
     C_Channel* channel  = server.findChannel(channel_name);
 
     if (!channel){
-        client.sendMessage(":server 403 " + client.getNickname() + " " + channel_name + " :No such channel\r\n");
+           server.sendError(&client, 403, "", channel_name, "No such channel");
         return;
     }
     if (!channel->hasClient(client))
     {
-        client.sendMessage(":server 442 " + client.getNickname() + " " + channel_name +  " :You're not on that channel\r\n");
+           server.sendError(&client, 442, "", channel_name, "You're not on that channel");
         return;
     }
 
     if (!channel->isOperator(client)){
-        client.sendMessage(":server 482 " + client.getNickname() + " " + channel_name + " :You're not channel operator\r\n");
+           server.sendError(&client, 482, "", channel_name, "You're not channel operator");
         return;
     }
 
     C_Client* target = server.findClientByNickname(target_nick);
 
     if (!target){
-        client.sendMessage(":server 401 " + client.getNickname() + " " + target_nick + " :No such nick/channel\r\n");
+           server.sendError(&client, 401, "", target_nick, "No such nick/channel");
         return;
     }
     if (channel->hasClient(*target)){
-        client.sendMessage(":server 443 " + client.getNickname() + " " + target_nick + " " + channel_name + " :is already on channel\r\n");
+           server.sendError(&client, 443, "", target_nick + " " + channel_name, "is already on channel");
         return;
     }
     channel->inviteClient(*target);

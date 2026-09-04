@@ -12,37 +12,31 @@ void C_Server::processNickname(C_Client *client, t_command &cmd)
     std::string special = "-_[]\\`^{}";
     if (cmd.args.empty())
     {
-        std::string target = "*";
-        if (!client->getNickname().empty())
-            target = client->getNickname();
-        client->sendMessage(":server 431 " + target + " NICK :No nickname given\r\n");
+        sendError(client, 431, "NICK", "", "No nickname given");
         return;
     }
     std::string nick = cmd.args[0];
-    std::string target = "*";
-    if (!client->getNickname().empty())
-        target = client->getNickname();
     if (nick.size() == 0)
     {
-        client->sendMessage(":server 431 " + target + " NICK :No nickname given\r\n");
+        sendError(client, 431, "NICK", "", "No nickname given");
         return;
     }
     if (nick.size() > 9 || isdigit(nick[0]) || nick[0] == '-')
     {
-        client->sendMessage(":server 432 " + target + " " + nick + " :Erroneous nickname\r\n");
+        sendError(client, 432, "NICK", nick, "Erroneous nickname");
         return;
     }
     for (size_t i = 0; i < nick.size(); i++)
     {
         if (!isalnum(nick[i]) && special.find(nick[i]) == std::string::npos)
         {
-        client->sendMessage(":server 432 " + target + " " + nick + " :Erroneous nickname\r\n");
+        sendError(client, 432, "NICK", nick, "Erroneous nickname");
         return;
         }
     }
     if (nicknameIsTaken(nick))
     {
-        client->sendMessage(":server 433 " + target + " " + nick + " :Nickname is already in use\r\n");
+        sendError(client, 433, "NICK", nick, "Nickname is already in use");
         return;
     }
     if (!client->getNickname().empty())
@@ -63,24 +57,21 @@ void C_Server::processNickname(C_Client *client, t_command &cmd)
 
 void C_Server::processPassword(C_Client *client, t_command &cmd)
 {
-    std::string target = "*";
-    if (!client->getNickname().empty())
-        target = client->getNickname();
     if (client->authenticationState() & AUTH_PASS)
     {
-        client->sendMessage(":server 462 " + target + " PASS :You may not reregister\r\n");
+        sendError(client, 462, "PASS", "", "You may not reregister");
         return;
     }
     if (cmd.args.empty() || cmd.args.size() != 1)
     {
-        client->sendMessage(":server 461 " + target + " PASS :Not enough parameters\r\n");
+        sendError(client, 461, "PASS", "", "Not enough parameters");
         return;
     }
     std::string password = cmd.args[0];
     if (password != serverPassword)
     {
         client->updateAuthentication(QUIT);
-        client->sendMessage(":server 464 " + target + " PASS :Password incorrect\r\n");
+        sendError(client, 464, "PASS", "", "Password incorrect");
         return;
     }
     client->updateAuthentication(AUTH_PASS);
@@ -92,17 +83,14 @@ void C_Server::processPassword(C_Client *client, t_command &cmd)
 }
 void C_Server::processUserRegistration(C_Client *client, t_command &cmd)
 {
-    std::string target = "*";
-    if (!client->getNickname().empty())
-    target = client->getNickname();
     if (cmd.args.empty() || cmd.args.size() < 4)
     {
-        client->sendMessage(":server 461 " + target + " USER :Not enough parameters\r\n");
+        sendError(client, 461, "USER", "", "Not enough parameters");
         return;
     }
     if (client->getUsername() != "")
     {
-        client->sendMessage(":server 462 " + target +  " USER :You may not reregister\r\n");
+        sendError(client, 462, "USER", "", "You may not reregister");
         return;
     }
     client->setUsername(cmd.args[0]);

@@ -5,11 +5,11 @@
 void C_privMsgCommand::execute(C_Server& server,C_Client& client, const std::vector<std::string>& args){
 
     if (args.empty()){
-        client.sendMessage(":server 411 " +client.getNickname() +" :No recipient given (PRIVMSG)\r\n");
+        server.sendError(&client, 411, "PRIVMSG", "", "No recipient given (PRIVMSG)");
         return;
     }
     if (args.size() < 2) {
-        client.sendMessage(":server 412 " +client.getNickname() + " :No text to send\r\n");
+        server.sendError(&client, 412, "PRIVMSG", "", "No text to send");
         return;
     }
     std::string target = args[0];
@@ -18,11 +18,11 @@ void C_privMsgCommand::execute(C_Server& server,C_Client& client, const std::vec
     if (target[0] == '#'){
         C_Channel *channel = server.findChannel(target);
         if (!channel){
-            client.sendMessage(":server 403 " + client.getNickname() + " " + target + " :No such channel\r\n");
+            server.sendError(&client, 403, "", target, "No such channel");
             return;
         }
         if  ( !channel->hasClient(client)){
-            client.sendMessage(":server 404 " + client.getNickname() + " " + target + " :Cannot send to channel\r\n");
+            server.sendError(&client, 404, "", target, "Cannot send to channel");
             return;
         }
         std::string full_msg = ":" + client.getNickname() +  " PRIVMSG " + target + " :" + msg + "\r\n";
@@ -32,7 +32,7 @@ void C_privMsgCommand::execute(C_Server& server,C_Client& client, const std::vec
         C_Client *client_targeted = server.findClientByNickname(target);
 
         if (!client_targeted){
-            client.sendMessage(":server 401 " + client.getNickname() + " " + target + " :No such nick/channel\r\n");
+            server.sendError(&client, 401, "", target, "No such nick/channel");
             return;
         }
         std::string full_message = ":" + client.getNickname() + " PRIVMSG " + target + " :" + msg + "\r\n";

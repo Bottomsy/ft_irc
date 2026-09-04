@@ -30,6 +30,7 @@ int main(int ac, char **av){
 
         signal(SIGINT, C_Server::SignalHandler);
         signal(SIGQUIT, C_Server::SignalHandler);
+        signal(SIGTERM, C_Server::SignalHandler);
 
         C_Server ser(port, av[2]);
         ser.initializeNetwork();

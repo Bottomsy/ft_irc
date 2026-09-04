@@ -4,14 +4,13 @@
 void C_JoinCommand::execute (C_Server& server,C_Client& client, const std::vector<std::string>& args){
 
     if  (args.empty()){
-        client.sendMessage(":server 461 " + client.getNickname() + " JOIN :Not enough parameters\r\n");
+        server.sendError(&client, 461, "JOIN", "", "Not enough parameters");
         return;
     }
 
     std::string channel_name = args[0];
     if ( channel_name[0] != '#'){
-        client.sendMessage(":server 403 " +
-        client.getNickname() + " " + channel_name + " :No such channel\r\n");
+        server.sendError(&client, 403, "", channel_name, "No such channel");
         return;
     }
     std::string channel_password = (args.size() > 1)? args[1]:"";
@@ -23,8 +22,7 @@ void C_JoinCommand::execute (C_Server& server,C_Client& client, const std::vecto
                 channel->addClient(client,channel_password);
             }
             else{
-                client.sendMessage(":server 473 " +
-                client.getNickname() + " " + channel_name + " :Cannot join channel (+i)\r\n");
+                server.sendError(&client, 473, "", channel_name, "Cannot join channel (+i)");
                 return;
             }
         }

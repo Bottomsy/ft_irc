@@ -53,6 +53,8 @@ class C_Server
 
             int authenticate(t_command &cmd, C_Client *client);
             void dispatchCommand(t_command &, int);
+            void processTopic(C_Client*, t_command&);
+            void processMode(C_Client*, t_command&);
             void processPassword(C_Client*, t_command&);
             void processNickname(C_Client*, t_command&);
             void processUserRegistration(C_Client*, t_command&);
@@ -60,6 +62,7 @@ class C_Server
             void closeClientSession(C_Client*, t_command&);
         bool registrationComplete(C_Client *);
         bool nicknameIsTaken(std::string);
+        void sendError(C_Client *, int, const std::string&, const std::string&, const std::string&);
         ~C_Server();
 };
 
