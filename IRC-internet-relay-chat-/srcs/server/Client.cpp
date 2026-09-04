@@ -76,7 +76,7 @@ bool C_Client::containsCompleteLine()
 
 void C_Client::sendMessage(std::string msg) const
 {
-    send(socketDescriptor, msg.C_str(), msg.size(), 0);
+    send(socketDescriptor, msg.c_str(), msg.size(), 0);
 }
 
 std::string C_Client::takeNextLine()

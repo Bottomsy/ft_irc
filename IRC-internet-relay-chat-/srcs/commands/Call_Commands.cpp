@@ -156,7 +156,7 @@ void C_Server::dispatchCommand(t_command &cmd, int fd)
                 client->sendMessage("MODE +l needs a number\r\n");
                 return;
             }
-            int limit = std::atoi(cmd.args[2].C_str());
+            int limit = std::atoi(cmd.args[2].c_str());
         
             if (limit <= 0) {
                 client->sendMessage("Invalid limit\r\n");
